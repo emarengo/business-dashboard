@@ -1,0 +1,60 @@
+#!/usr/bin/env groovy
+@Library("jenkins-devops-scripts") _
+
+def stackUtils = new com.beat.utilities.stack()
+def kubestackUtils = new com.beat.utilities.kubestack()
+def gitUtils = new com.beat.utilities.github()
+
+def setList = [:]
+def stackEnv
+
+def project = "core-business-dashboard"
+
+node('slave') {
+    def commiter = gitUtils.determineGitCommiter()
+
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    daysToKeepStr: '7',
+                    numToKeepStr: '5',
+                )
+            )
+        ]
+    )
+
+     def helmChartMap = [
+            "${project}": "charts/core-business-dashboard",
+     ]
+
+     def kubestack_init_map = kubestack_init {
+             i_project=project
+             i_helmChartMap=helmChartMap
+     }
+
+    def version = "${kubestack_init_map.branch}-${gitUtils.describeWithTags()}"
+    def uniqueCode = kubestack_init_map.uniqueCode
+
+    withCredentials([
+      string(credentialsId: "BEAT_THEME_NPM_TOKEN", variable: 'npmToken')
+    ]) {
+        def dockerMap = [
+            "${project}": "--build-arg version=${version} -f Dockerfile --build-arg npmToken=${npmToken}  .",
+        ]
+
+        kubestack_deploy {
+            i_setList=setList
+            i_dockerMap=dockerMap
+            i_helmChartMap=helmChartMap
+            i_stack=kubestack_init_map.stack
+            i_project=project
+            i_stackEnv=kubestack_init_map.stackEnv
+            i_branch=kubestack_init_map.branch
+            i_uniqueCode=kubestack_init_map.uniqueCode
+            i_market=kubestack_init_map.market
+            i_kubestack=kubestack_init_map.kubestack
+            i_sandbox=kubestack_init_map.sandbox
+        }
+    }
+}

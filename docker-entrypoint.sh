@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+set -x
+
+sed -i "s/REACT_APP_ENVIRONMENT/${REACT_APP_ENVIRONMENT}/g; s/REACT_APP_REGION/${REACT_APP_REGION}/g; s/REACT_APP_LOCALE/${REACT_APP_LOCALE}/g; s|REACT_APP_HQ_ENDPOINT|${REACT_APP_HQ_ENDPOINT}|g; s|REACT_APP_CORE_BUSINESS_BFF_API|${REACT_APP_CORE_BUSINESS_BFF_API}|g;" /var/www/html/static/js/*.js
+
+nginx -g 'daemon off;'
+
+exec "$@"

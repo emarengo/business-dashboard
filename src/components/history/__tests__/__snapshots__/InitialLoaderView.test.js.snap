@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Initial Loader View should match snapshot 1`] = `
+<p
+  class="css-13swf06"
+  data-testid="LoaderText"
+>
+  Please Wait...
+</p>
+`;

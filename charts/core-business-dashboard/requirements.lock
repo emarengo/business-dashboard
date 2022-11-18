@@ -1,0 +1,6 @@
+dependencies:
+- name: beat-base
+  repository: https://harbor.private.k8s.management.thebeat.co/chartrepo/beat-charts
+  version: 0.76.0
+digest: sha256:81b1f795b09efc9945b07a1d7c1dd9fc6d153ceab96958f2da29cc1adfe87d0d
+generated: "2021-11-16T16:19:29.962998+02:00"

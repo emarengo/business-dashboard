@@ -1,0 +1,52 @@
+{
+  "shifts": [
+    {
+      "id_driver": 1,
+      "first_name": "Eric",
+      "last_name": "Stoltz",
+      "driver_shifts": [
+        {
+          "start_date": "2020-06-30T10:00:00Z",
+          "end_date": "2020-06-30T18:00:00Z",
+          "vehicle_plates": "NAA 4444"
+        }
+      ]
+    },
+    {
+      "id_driver": 2,
+      "first_name": "Jason",
+      "last_name": "Patric",
+      "driver_shifts": [
+        {
+          "start_date": "2020-07-01T10:00:00Z",
+          "end_date": "2020-07-01T18:00:00Z",
+          "vehicle_plates": "NAA 8719"
+        }
+      ]
+    },
+    {
+      "id_driver": 3,
+      "first_name": "Peter",
+      "last_name": "Stormare",
+      "driver_shifts": [
+        {
+          "start_date": "2020-07-02T10:00:00Z",
+          "end_date": "2020-07-02T18:00:00Z",
+          "vehicle_plates": "NAC 7891"
+        }
+      ]
+    },
+    {
+      "id_driver": 4,
+      "first_name": "Ron",
+      "last_name": "Perlman",
+      "driver_shifts": [
+        {
+          "start_date": "2020-07-03T10:00:00Z",
+          "end_date": "2020-07-03T18:00:00Z",
+          "vehicle_plates": "NAC 9178"
+        }
+      ]
+    }
+  ]
+}

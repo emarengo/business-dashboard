@@ -1,0 +1,18 @@
+FROM node:12.18.1-buster-slim as build-steps
+
+ENV WEBROOT /mnt/srv/www/core-business-dashboard/current
+
+RUN apt-get update && \
+  apt-get -y install \
+  git
+
+RUN mkdir -p ${WEBROOT}
+
+# From here we load our application's code in, therefore the previous docker
+# "layer" thats been cached will be used if possible
+WORKDIR ${WEBROOT}
+ADD . ${WEBROOT}
+
+EXPOSE 80 4023
+
+CMD ["sh", "-c", "npm rebuild node-sass && yarn start"]

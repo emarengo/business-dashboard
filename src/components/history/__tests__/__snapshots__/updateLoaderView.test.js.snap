@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Update Loader View should match snapshot 1`] = `
+<p
+  class="css-1rfud7a"
+  data-testid="UpdateLoaderText"
+>
+  This page is inaccessible as a new version is being deployed. 
+  <br />
+   
+  Please try again in 2 minutes.
+</p>
+`;

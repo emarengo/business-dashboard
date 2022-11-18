@@ -1,0 +1,61 @@
+.mapboxgl-ctrl-group button + button {
+  border-top: 2px solid #ddd;
+}
+
+.mapbox-gl-draw_ctrl-draw-btn.mapbox-gl-draw_point {
+  font-size: 20px;
+}
+
+.mapboxgl-ctrl-group.mapboxgl-ctrl {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  box-shadow: none;
+}
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+.mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
+  height: 18px;
+  margin: 6px;
+  width: 18px;
+  --img-url: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8' standalone='yes'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath fill='%231F3044'%0Ad='M5.5,14.2c-0.9,0.8-1.9,0-1.5-1l4-9c0.2-0.4,0.6-0.8,1-0.8s0.8,0.4,1,0.8l4,9c0.4,1-0.6,1.8-1.5,1l-3.5-3L5.5,14.2z'/%3E%3C/svg%3E");
+  background-image: var(--img-url);
+}
+
+.mapboxgl-ctrl {
+  display: none;
+}
+
+.versionModalBg > .modal-backdrop {
+  backdrop-filter: blur(30px) !important;
+  background-color: rgba(0, 31, 51, 0.43) !important;
+}
+
+/* Notification Message Ovevrides. */
+.notification {
+  border-radius: 4px !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+  backdrop-filter: blur(2px) !important;
+  box-shadow: -8px 0 16px 0 rgba(156, 156, 161, 0.11),
+    8px 0 16px 0 rgba(90, 168, 202, 0.13) !important;
+  background-color: rgba(238, 240, 245, 0.45) !important;
+}
+
+.notification > div {
+  padding: 0 !important;
+}
+.notification h3 {
+  font-weight: 500 !important;
+  font-size: 15px !important;
+}
+.notification::before {
+  color: #1197a1 !important;
+  margin-right: 13px !important;
+  font-size: 19px !important;
+}
+
+.notification.error::before {
+  color: rgba(190, 72, 36, 0.8) !important;
+}

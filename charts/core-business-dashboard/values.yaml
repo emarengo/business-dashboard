@@ -1,0 +1,172 @@
+global:
+  fullnameOverride: 'core-business-dashboard'
+
+app:
+  changeCause: ''
+  replicaCount: 1
+  containers:
+    core-business-dashboard:
+      image:
+        registry: 'registry.private.k8s.management.thebeat.co/beat'
+        name: core-business-dashboard
+        tag: v1.0.0
+        pullPolicy: Always
+      livenessProbe:
+        httpGet:
+          path: '/'
+          port: 'http'
+      readinessProbe:
+        httpGet:
+          path: '/'
+          port: 'http'
+      resources:
+        # We usually recommend not to specify default resources and to leave this as a conscious
+        # choice for the user. This also increases chances charts run on environments with little
+        # resources, such as Minikube. If you do want to specify resources, uncomment the following
+        # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 32Mi
+      env:
+        REACT_APP_ENVIRONMENT: sandbox
+        REACT_APP_REGION: dev
+        REACT_APP_CORE_BUSINESS_BFF_API: http://core-business-dashboard-bff
+
+  serviceAccount:
+    nameOverride: ''
+
+  service:
+    type: ClusterIP
+    ports:
+      - port: 80
+
+  ingress:
+    enabled: true
+    class:
+      - dashboard
+    path: /
+    host: core-business
+    cluster: sandbox
+
+  ingresses:
+    api:
+      enabled: false
+
+  istio:
+    enabled: true
+    federation:
+      enabled: false
+      ## This is the suffix that will be added to the service that will be created
+      ## for the federation purposes. e.g service name will be <my-service>-co for
+      ## colombia cluster.
+      # stackSuffix: dev
+    auth:
+      enabled: true
+      ## This is the port that your service is exposed. It should be
+      ## one of the ports you specified in the service section. If your
+      ## application doesn't listen on that port things will not work.
+      servicePort: 80
+      protectedHosts:
+        - core-business-dashboard-host.api.sandbox.thebeat.co
+      identityProvider: https://dex.k8s.sandbox.thebeat.co
+      forwardOriginalJWT: true
+      policy:
+        - group: [Devops]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Backend]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Frontend]
+          methods: ["*"]
+          paths: [/*]
+        - group: [QA]
+          methods: ["*"]
+          paths: [/*]
+        - group: [SET]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Product Operations]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Product Owners]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Designers]
+          methods: ["*"]
+          paths: [/*]
+        - group: [Core-business Portal]
+          methods: ["*"]
+          paths: [/*]
+    sidecar:
+      enabled:
+        true
+        # Below you should add the namespaces/svc you want to be able to send traffic to
+        # egress:
+        #   hosts:
+        #   - rest/rest
+        #   - rest/* (all services on the namespace rest)
+        ########################
+        # On the below section you can even filter this traffic based on port/protocol/namespace/service
+        # Ref Docs: https://istio.io/latest/docs/reference/config/networking/sidecar/
+        # port:
+        # - portNumber: 8080
+      #   protocol: HTTP
+      #   name: somename
+      #   hosts: rest/rest
+      #  Below you can filter the incoming traffic of the service
+      # ingress:
+      #   - portNumber: 8080
+      #     protocol: HTTP
+      #     name: somename
+      #     defaultEndpoint: 127.0.0.1:8080
+    traffic:
+      enabled:
+        false
+        # hosts:
+        # - host1
+        # retries:
+        # enabled: false
+      # attempts: 3
+      # perTryTimeout: 2s
+      # retryOn: 5xx
+
+  monitoring:
+    enabled: true
+    path: /metrics
+
+  # This will enable blackbox exporter probes in the designated path.
+  # If the probe get non 2xx responses for greates than "for:" period it will sent an alert to alertmanager
+  # Alertmanager will route the notification according to severity to a slack channel or pagerduty
+  blackboxProbe:
+    enabled: false
+    path: /health
+    for: 5m
+    severity: warning
+
+  autoscaling:
+    enabled: true
+    minReplicas: '3'
+    maxReplicas: '10'
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 80
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}

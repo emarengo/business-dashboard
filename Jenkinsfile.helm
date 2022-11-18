@@ -1,0 +1,146 @@
+#!/usr/bin/env groovy
+
+ @Library("jenkins-devops-scripts") _
+
+ node('slave') {
+   def gitUtils = new com.beat.utilities.github()
+   def stackUtils = new com.beat.utilities.stack()
+   def helmUtils = new com.beat.utilities.helm3(this)
+   def project = 'core-business-dashboard'
+   def jenkinsJobName = gitUtils.determineRepoName(env.JOB_NAME)
+   def notificationUtils = new com.beat.utilities.notifications('j5pVQUupsHpY3riXk5J2A8PO', jenkinsJobName, env.BUILD_URL, env.BUILD_NUMBER)
+   notificationUtils.defaultServerDeploymentsChannel = "#monitoring-loonshot-1"
+
+   def commiter = gitUtils.determineGitCommiter()
+   def stagingBranch = "staging-develop"
+   def namespace = "ride"
+   def chartmuseumAPI = "https://chartmuseum.private.k8s.management.thebeat.co/api/charts"
+
+   // Define the stacks you want to deploy to
+   def stacks = []
+   // Define whether we are referring to prod environments
+   def prod = false
+
+   stage('Clone repository') {
+     /* Let's make sure we have the repository cloned to our workspace */
+     checkout scm
+
+     if (env.TAG_NAME != null) {
+       echo "This is the ${env.TAG_NAME} tag"
+       branch_or_tag = env.TAG_NAME
+       helmTag = env.TAG_NAME
+       result = stackUtils.findStacksFromTags(branch_or_tag)
+       stacks = result[0]
+       prod = result[1]
+     } else {
+       echo "This is the ${env.BRANCH_NAME} branch"
+       branch_or_tag = env.BRANCH_NAME
+       // This here is a hack/workaround!
+       // helmTag is actually the helm chart's version. However helm does not support
+       // server incompatible versions, that is the version does not start with something
+       // like vx.x.x or plain x.x.x
+       // In our case, when we build for staging-develop branch we have no version, since there is not git tag here.
+       // So have a placeholder version of v1.0.0-staging-develop
+       helmTag = "v1.0.0-${env.BRANCH_NAME}"
+       stacks = stackUtils.stacksStaging()
+       if (branch_or_tag != stagingBranch) {
+         sh "exit 0"
+       }
+     }
+
+     notificationUtils.slackNotifyDeploymentStarted(stacks)
+
+     // Get Management stack variables
+     envVarMapManagement = stackUtils.managementstackVariables()
+     kubeconfig_id_mgmt = "KUBECONFIG_${envVarMapManagement.KUBERNETES_CLUSTER}"
+   }
+
+   stage('Build docker image') {
+        beat_theme_npm_token = "BEAT_THEME_NPM_TOKEN";
+
+        withCredentials([
+          string(credentialsId: "${beat_theme_npm_token}", variable: 'npmToken')
+        ]) {
+          /* This builds the actual image; synonymous to docker build on the command line */
+          img = docker.build("beat/${project}:${branch_or_tag}", "--build-arg npmToken=${npmToken} .")
+        }
+   }
+
+   stage('Push image to registry') {
+     // If image is built, push it to registry
+       docker.withRegistry("https://${envVarMapManagement.REGISTRY_SERVER}") {
+         img.push("${branch_or_tag}")
+       }
+   }
+
+   stage("Helm lint") {
+     try {
+       helmUtils.helmLint("${kubeconfig_id_mgmt}", "charts/${project}")
+     } catch (e) {
+       currentBuild.result = 'FAILURE'
+       notificationUtils.slackNotifyDeploymentFailure(stacks, STAGE_NAME)
+       throw e
+     }
+   }
+
+   stage("Helm Build Package") {
+     helmUtils.helmPackage("${kubeconfig_id_mgmt}", "charts/${project}", "${helmTag}")
+   }
+
+   stage("Push helm package to chartmuseum") {
+     helmUtils.helmPush(project, "${helmTag}", "${chartmuseumAPI}")
+   }
+
+   stage("Deploy helm chart") {
+     for (stack in stacks) {
+        envVarMapping = prod ? stackUtils.stackVariables(stack) : stackUtils.stackVariables('dev')
+        ingressHost = prod ? "core-business" : "${stack}-core-business"
+        ingressCluster = prod ? stackUtils.stackCountry(stack) : stackUtils.stackCountry('dev')
+        projectWithStack = prod ? project : "${project}-${stack}"
+        protectedHost = "${projectWithStack}.api.${envVarMapping.KUBERNETES_CLUSTER}"
+
+       if (prod) {
+         setList = "--set app.containers.core-business-dashboard.env.REACT_APP_ENVIRONMENT=production \
+                    --set app.containers.core-business-dashboard.env.REACT_APP_CORE_BUSINESS_BFF_API=\"https://core-business-dashboard-bff.api.${envVarMapping.KUBERNETES_CLUSTER}\" "
+         helmName = project
+
+       } else {
+         setList = "--set app.containers.core-business-dashboard.env.REACT_APP_ENVIRONMENT=staging \
+                    --set app.containers.core-business-dashboard.env.REACT_APP_CORE_BUSINESS_BFF_API=\"https://core-business-dashboard-bff-${stack}.api.sandbox.thebeat.co\" "
+         helmName = "${project}-${stack}"
+       }
+       kubeconfig_id = "KUBECONFIG_${envVarMapping.KUBERNETES_CLUSTER}"
+
+       setList = setList + "--set image.tag=${branch_or_tag} \
+                            --set global.fullnameOverride=${projectWithStack} \
+                            --set app.containers.core-business-dashboard.image.tag=${branch_or_tag} \
+                            --set app.containers.core-business-dashboard.env.REACT_APP_REGION=${stack} \
+                            --set app.containers.core-business-dashboard.env.CORE_BUSINESS_VERSION=${branch_or_tag} \
+                            --set app.changeCause=Jenkins=\"${RUN_DISPLAY_URL} Commiter=${commiter}\" \
+                            --set app.ingress.host=${ingressHost} \
+                            --set app.ingress.cluster=${ingressCluster} \
+                            --set app.istio.auth.identityProvider=\"https://dex.k8s.${envVarMapping.KUBERNETES_CLUSTER}\" \
+                            --set app.istio.auth.protectedHosts[0]=${protectedHost} "
+      
+      def dockerFlags = ''
+      def valuesFile = "charts/${project}/values.${stack}.yaml"
+      if (fileExists(valuesFile)) {
+          println("Using values file values.${stack}.yaml")
+          dockerFlags = "-v ${env.WORKSPACE}/${valuesFile}:/values.${stack}.yaml"
+          setList = "${setList} --values /values.${stack}.yaml"
+      }
+
+       try  {
+        
+        helmUtils.helmDeploy("${kubeconfig_id}", "${helmTag}", "${namespace}", "${setList}", "${helmName}", "beat/${project}", dockerFlags)
+        currentBuild.result = 'SUCCESS'
+       } catch (e) {
+         echo(e)
+         helmUtils.helmRollback("${kubeconfig_id}", 0, "${helmName}")
+         notificationUtils.slackNotifyDeploymentFailure(stack, STAGE_NAME)
+         throw e
+       }
+         notificationUtils.slackNotifyDeploymentSuccess(stack)
+     }
+   }
+ }

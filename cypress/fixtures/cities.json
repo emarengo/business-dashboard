@@ -1,0 +1,5 @@
+[
+  { "id_city": 1, "name": "Lima", "is_capital": true },
+  { "id_city": 2, "name": "Cusco", "is_capital": false },
+  { "id_city": 3, "name": "Arequipa", "is_capital": false }
+]

@@ -1,0 +1,9 @@
+{
+  "result": null,
+  "errors": [
+    "can not add a past date as Planned Start Time (2020-07-05 10:00:00 +0000 UTC)",
+    "can not add a past date as Planned Start Time (2020-07-05 13:00:00 +0000 UTC)",
+    "can not add a past date as Planned Start Time (2020-07-06 12:00:00 +0000 UTC)",
+    "can not add a past date as Planned Start Time (2020-07-06 10:00:00 +0000 UTC)"
+  ]
+}

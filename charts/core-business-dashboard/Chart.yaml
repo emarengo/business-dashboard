@@ -1,0 +1,10 @@
+apiVersion: v2
+appVersion: '1.0'
+description: A Helm chart for Kubernetes
+name: core-business-dashboard
+version: 0.1.1
+dependencies:
+  - name: beat-base
+    alias: app
+    version: 0.76.0
+    repository: "@beat"
